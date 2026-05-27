@@ -60,7 +60,6 @@ export default function Insurance() {
   const [insurance, setInsurance] = useState('')
   const [therapy, setTherapy] = useState('')
   const [selectedConditions, setSelectedConditions] = useState([])
-  const [step, setStep] = useState(1)
 
   const t = {
     bg: dark ? '#0d0f12' : '#f5f4f0',
@@ -92,8 +91,6 @@ export default function Insurance() {
     toggleBg: dark ? '#1a2a3a' : '#e0d8c8',
     toggleText: dark ? '#4a7aaa' : '#b0a090',
     divider: dark ? '#1a2a3a' : '#e8e2d8',
-    stepDot: dark ? '#1a2a3a' : '#e0d8c8',
-    stepDotOn: dark ? '#4a9eff' : '#c8a96e',
   }
 
   function toggleCondition(id) {
@@ -238,4 +235,18 @@ export default function Insurance() {
               Generate appeal letter
             </button>
             <button onClick={() => navigate('/providers')}
-              style={{ ba
+              style={{ background: 'transparent', color: t.ctaSecText, border: `0.5px solid ${t.ctaSecBorder}`, borderRadius: 8, padding: '14px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+              Find a telehealth provider
+            </button>
+          </div>
+        </>
+      )}
+
+      <div style={{ background: t.disclaimer, border: `0.5px solid ${t.disclaimerBorder}`, borderRadius: 8, padding: '12px 14px' }}>
+        <p style={{ fontSize: 12, color: t.disclaimerText, lineHeight: 1.6, margin: 0 }}>
+          Coverage information is for educational purposes only and may not reflect your specific plan. Contact your insurance provider directly to confirm benefits.
+        </p>
+      </div>
+    </div>
+  )
+}
