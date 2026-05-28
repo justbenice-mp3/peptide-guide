@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
-import Groq from 'groq-sdk'
-
-const groq = new Groq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true
-})
 
 export default function AppealLetter() {
   const navigate = useNavigate()
@@ -43,7 +37,6 @@ export default function AppealLetter() {
     input: dark ? '#111620' : '#ffffff',
     inputBorder: dark ? '#1e2d3e' : '#e0d8c8',
     inputText: dark ? '#ffffff' : '#2a2218',
-    inputPlaceholder: dark ? '#3a5a7a' : '#c0b0a0',
     label: dark ? '#4a7aaa' : '#9a8a78',
     cta: dark ? '#4a9eff' : '#c8a96e',
     ctaDisabled: dark ? '#1a2a3a' : '#e0d8c8',
@@ -107,13 +100,21 @@ Patient profile:
 
 Write a complete formal appeal letter. Use [DATE] as a placeholder for the date. Use [INSURANCE COMPANY ADDRESS] as a placeholder for the address. Make it professional, persuasive, and medically grounded. End with a signature block for the patient.`
 
-      const completion = await groq.chat.completions.create({
-        model: 'llama3-8b-8192',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.4,
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.4,
+        }),
       })
 
-      setLetter(completion.choices[0].message.content)
+      const data = await response.json()
+      setLetter(data.choices[0].message.content)
       setStep(2)
     } catch (e) {
       alert('Unable to generate letter. Please try again.')
@@ -147,6 +148,10 @@ Write a complete formal appeal letter. Use [DATE] as a placeholder for the date.
         ))}
       </div>
 
+      <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: t.ctaSecText, fontSize: 13, cursor: 'pointer', marginBottom: '1rem', padding: 0 }}>
+        ← Back
+      </button>
+
       {step === 1 && (
         <>
           <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.eyebrow, marginBottom: 8 }}>
@@ -160,7 +165,6 @@ Write a complete formal appeal letter. Use [DATE] as a placeholder for the date.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: '1.5rem' }}>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
                 <label style={labelStyle}>First name</label>
@@ -210,10 +214,12 @@ Write a complete formal appeal letter. Use [DATE] as a placeholder for the date.
 
             <div>
               <label style={labelStyle}>Previous treatments tried</label>
-              <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
+              <textarea
+                style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
                 placeholder="e.g. Physical therapy for 6 months, metformin for 1 year..."
                 value={form.previousTreatments}
-                onChange={e => update('previousTreatments', e.target.value)} />
+                onChange={e => update('previousTreatments', e.target.value)}
+              />
             </div>
           </div>
 
@@ -223,8 +229,20 @@ Write a complete formal appeal letter. Use [DATE] as a placeholder for the date.
             </p>
           </div>
 
-          <button onClick={generateLetter} disabled={!canGenerate || loading}
-            style={{ width: '100%', background: !canGenerate || loading ? t.ctaDisabled : t.cta, color: !canGenerate || loading ? t.ctaDisabledText : '#fff', border: 'none', borderRadius: 8, padding: '14px 16px', fontSize: 14, fontWeight: 500, cursor: !canGenerate || loading ? 'not-allowed' : 'pointer' }}>
+          <button
+            onClick={generateLetter}
+            disabled={!canGenerate || loading}
+            style={{
+              width: '100%',
+              background: !canGenerate || loading ? t.ctaDisabled : t.cta,
+              color: !canGenerate || loading ? t.ctaDisabledText : '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '14px 16px',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: !canGenerate || loading ? 'not-allowed' : 'pointer'
+            }}>
             {loading ? 'Generating your letter...' : 'Generate appeal letter'}
           </button>
         </>
@@ -249,15 +267,18 @@ Write a complete formal appeal letter. Use [DATE] as a placeholder for the date.
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button onClick={copyLetter}
+            <button
+              onClick={copyLetter}
               style={{ background: t.cta, color: '#fff', border: 'none', borderRadius: 8, padding: '14px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               {copied ? 'Copied to clipboard' : 'Copy letter'}
             </button>
-            <button onClick={() => navigate('/providers')}
+            <button
+              onClick={() => navigate('/providers')}
               style={{ background: 'transparent', color: t.ctaSecText, border: `0.5px solid ${t.ctaSecBorder}`, borderRadius: 8, padding: '14px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Find a telehealth provider
             </button>
-            <button onClick={() => setStep(1)}
+            <button
+              onClick={() => setStep(1)}
               style={{ background: 'transparent', color: t.ctaSecText, border: `0.5px solid ${t.ctaSecBorder}`, borderRadius: 8, padding: '14px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Edit details
             </button>
