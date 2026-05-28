@@ -11,6 +11,15 @@ const insuranceTypes = [
   { id: 'selfpay', label: 'Self-pay', sub: 'No insurance' },
 ]
 
+const medicareSecondary = [
+  { id: 'medigap', label: 'Medigap / Supplement', sub: 'Covers Medicare gaps' },
+  { id: 'mapd', label: 'Medicare Advantage', sub: 'Part C (HMO or PPO)' },
+  { id: 'partd', label: 'Part D only', sub: 'Prescription drug plan' },
+  { id: 'medicaid_dual', label: 'Medicaid (dual eligible)', sub: 'Both Medicare + Medicaid' },
+  { id: 'employer', label: 'Employer secondary', sub: 'Through work or spouse' },
+  { id: 'none_secondary', label: 'No secondary', sub: 'Medicare only' },
+]
+
 const therapyTypes = [
   { id: 'peptides', label: 'Peptide therapy' },
   { id: 'glp1', label: 'GLP-1 therapy' },
@@ -38,7 +47,7 @@ const approvalData = {
   },
   medicare: {
     peptides: { likelihood: 'Very low', color: '#e24b4a', tip: 'Medicare does not typically cover peptide therapy. Consider self-pay compounding pharmacies.' },
-    glp1: { likelihood: 'Moderate', color: '#ba7517', tip: 'Medicare Part D may cover GLP-1s for diabetes. Coverage for weight loss alone is limited but expanding.' },
+    glp1: { likelihood: 'Moderate', color: '#ba7517', tip: 'Medicare Part D may cover GLP-1s for diabetes. Coverage for weight loss alone is limited but expanding. A secondary plan may significantly improve your coverage.' },
   },
   medicaid: {
     peptides: { likelihood: 'Very low', color: '#e24b4a', tip: 'Medicaid rarely covers peptide therapy. Focus on appeal documentation and medical necessity.' },
@@ -54,10 +63,20 @@ const approvalData = {
   },
 }
 
+const medicareSecondaryTips = {
+  medigap: 'Your Medigap supplement may help cover out-of-pocket costs. Check your specific plan for medication coverage.',
+  mapd: 'Medicare Advantage plans vary widely. Your plan may have better GLP-1 or specialty drug coverage than original Medicare.',
+  partd: 'Your Part D plan may cover GLP-1 medications for diabetes. Check your formulary for semaglutide or tirzepatide.',
+  medicaid_dual: 'As a dual-eligible beneficiary you may have enhanced coverage through your state Medicaid program.',
+  employer: 'Your employer secondary plan may cover therapies Medicare does not. Check your Summary of Benefits.',
+  none_secondary: 'Without a secondary plan your out-of-pocket costs may be higher. Consider a Medigap plan for better coverage.',
+}
+
 export default function Insurance() {
   const navigate = useNavigate()
   const { dark, toggle } = useTheme()
   const [insurance, setInsurance] = useState('')
+  const [secondaryInsurance, setSecondaryInsurance] = useState('')
   const [therapy, setTherapy] = useState('')
   const [selectedConditions, setSelectedConditions] = useState([])
 
@@ -81,8 +100,6 @@ export default function Insurance() {
     pillSub: dark ? '#3a6a90' : '#b0a090',
     pillSubOn: dark ? '#4a9eff' : '#f0e8d8',
     cta: dark ? '#4a9eff' : '#c8a96e',
-    ctaDisabled: dark ? '#1a2a3a' : '#e0d8c8',
-    ctaDisabledText: dark ? '#3a5a7a' : '#c0b0a0',
     ctaSecText: dark ? '#4a7aaa' : '#b0a090',
     ctaSecBorder: dark ? '#1a2a3a' : '#e0d8c8',
     disclaimer: dark ? '#0a1220' : '#faf7f2',
@@ -91,6 +108,16 @@ export default function Insurance() {
     toggleBg: dark ? '#1a2a3a' : '#e0d8c8',
     toggleText: dark ? '#4a7aaa' : '#b0a090',
     divider: dark ? '#1a2a3a' : '#e8e2d8',
+    infoBg: dark ? '#0a1620' : '#f0f6ff',
+    infoBorder: dark ? '#1a3a5c' : '#c8ddf5',
+    infoText: dark ? '#4a8abf' : '#2a5a8a',
+  }
+
+  function selectInsurance(id) {
+    setInsurance(id)
+    setSecondaryInsurance('')
+    const existing = JSON.parse(localStorage.getItem('peptide_profile') || '{}')
+    localStorage.setItem('peptide_profile', JSON.stringify({ ...existing, insurance: id }))
   }
 
   function toggleCondition(id) {
@@ -122,6 +149,10 @@ export default function Insurance() {
         </button>
       </div>
 
+      <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: t.ctaSecText, fontSize: 13, cursor: 'pointer', marginBottom: '1rem', padding: 0 }}>
+        ← Back
+      </button>
+
       <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.eyebrow, marginBottom: 8 }}>
         Insurance navigator
       </div>
@@ -139,7 +170,7 @@ export default function Insurance() {
         {insuranceTypes.map(ins => {
           const on = insurance === ins.id
           return (
-            <button key={ins.id} onClick={() => setInsurance(ins.id)} style={{
+            <button key={ins.id} onClick={() => selectInsurance(ins.id)} style={{
               background: on ? t.pillOn : t.pill,
               border: `${on ? '1.5px' : '0.5px'} solid ${on ? t.pillBorderOn : t.pillBorder}`,
               borderRadius: 8, padding: '10px 12px', textAlign: 'left', cursor: 'pointer'
@@ -150,6 +181,44 @@ export default function Insurance() {
           )
         })}
       </div>
+
+      {insurance === 'medicare' && (
+        <>
+          <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.eyebrow, marginBottom: 10 }}>
+            Do you have a secondary insurance?
+          </div>
+          <div style={{ background: t.infoBg, border: `0.5px solid ${t.infoBorder}`, borderRadius: 8, padding: '10px 12px', marginBottom: '1rem' }}>
+            <p style={{ fontSize: 12, color: t.infoText, lineHeight: 1.6, margin: 0 }}>
+              Many Medicare beneficiaries have a secondary plan that can significantly improve coverage for specialty therapies. Select yours below for more accurate guidance.
+            </p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: '1.5rem' }}>
+            {medicareSecondary.map(sec => {
+              const on = secondaryInsurance === sec.id
+              return (
+                <button key={sec.id} onClick={() => setSecondaryInsurance(sec.id)} style={{
+                  background: on ? t.pillOn : t.pill,
+                  border: `${on ? '1.5px' : '0.5px'} solid ${on ? t.pillBorderOn : t.pillBorder}`,
+                  borderRadius: 8, padding: '10px 12px', textAlign: 'left', cursor: 'pointer'
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: on ? t.pillTextOn : t.pillText }}>{sec.label}</div>
+                  <div style={{ fontSize: 11, marginTop: 2, color: on ? t.pillSubOn : t.pillSub }}>{sec.sub}</div>
+                </button>
+              )
+            })}
+          </div>
+          {secondaryInsurance && medicareSecondaryTips[secondaryInsurance] && (
+            <div style={{ background: t.card, border: `0.5px solid ${t.cardBorder}`, borderRadius: 8, padding: '12px 14px', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.eyebrow, marginBottom: 6 }}>
+                Secondary coverage note
+              </div>
+              <p style={{ fontSize: 13, color: t.cardSub, lineHeight: 1.6, margin: 0 }}>
+                {medicareSecondaryTips[secondaryInsurance]}
+              </p>
+            </div>
+          )}
+        </>
+      )}
 
       <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.eyebrow, marginBottom: 10 }}>
         Therapy type
@@ -236,7 +305,7 @@ export default function Insurance() {
             </button>
             <button onClick={() => navigate('/providers')}
               style={{ background: 'transparent', color: t.ctaSecText, border: `0.5px solid ${t.ctaSecBorder}`, borderRadius: 8, padding: '14px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
-              Find a telehealth provider
+              Find matched programs
             </button>
           </div>
         </>
